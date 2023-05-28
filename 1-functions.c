@@ -1,112 +1,143 @@
 #include "monty.h"
 
-/**
- * nop - function
- * @stack: double pointer to the head of the list
- * @line_number: the current line number
- */
+void monty_push(stack_t **stack, unsigned int line_number);
+void monty_pall(stack_t **stack, unsigned int line_number);
+void monty_pint(stack_t **stack, unsigned int line_number);
+void monty_pop(stack_t **stack, unsigned int line_number);
+void monty_swap(stack_t **stack, unsigned int line_number);
 
-void nop(stack_t **stack, unsigned int line_number)
+/**
+ * monty_push - Pushes a value to a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
+ */
+void monty_push(stack_t **stack, unsigned int line_number)
 {
-	(void)stack;
+	stack_t *tmp, *new;
+	int i;
+
+	new = malloc(sizeof(stack_t));
+	if (new == NULL)
+	{
+		set_op_tok_error(malloc_error());
+		return;
+	}
+
+	if (op_toks[1] == NULL)
+	{
+		set_op_tok_error(no_int_error(line_number));
+		return;
+	}
+
+	for (i = 0; op_toks[1][i]; i++)
+	{
+		if (op_toks[1][i] == '-' && i == 0)
+			continue;
+		if (op_toks[1][i] < '0' || op_toks[1][i] > '9')
+		{
+			set_op_tok_error(no_int_error(line_number));
+			return;
+		}
+	}
+	new->n = atoi(op_toks[1]);
+
+	if (check_mode(*stack) == STACK) /* STACK mode insert at front */
+	{
+		tmp = (*stack)->next;
+		new->prev = *stack;
+		new->next = tmp;
+		if (tmp)
+			tmp->prev = new;
+		(*stack)->next = new;
+	}
+	else /* QUEUE mode insert at end */
+	{
+		tmp = *stack;
+		while (tmp->next)
+			tmp = tmp->next;
+		new->prev = tmp;
+		new->next = NULL;
+		tmp->next = new;
+	}
+}
+
+/**
+ * monty_pall - Prints the values of a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
+ */
+void monty_pall(stack_t **stack, unsigned int line_number)
+{
+	stack_t *tmp = (*stack)->next;
+
+	while (tmp)
+	{
+		printf("%d\n", tmp->n);
+		tmp = tmp->next;
+	}
 	(void)line_number;
 }
 
 /**
- * swap - swaps the top two elements of the stack.
- * @stack: double pointer to the head of the list
- * @line_number: line number
+ * monty_pint - Prints the top value of a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
  */
-
-void swap(stack_t **stack, unsigned int line_number)
+void monty_pint(stack_t **stack, unsigned int line_number)
 {
-	stack_t *val;
-	int tmp = 0;
+	if ((*stack)->next == NULL)
+	{
+		set_op_tok_error(pint_error(line_number));
+		return;
+	}
 
-	val = *stack;
-	if (val == NULL || val->next == NULL)
+	printf("%d\n", (*stack)->next->n);
+}
+
+
+/**
+ * monty_pop - Removes the top value element of a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
+ */
+void monty_pop(stack_t **stack, unsigned int line_number)
+{
+	stack_t *next = NULL;
+
+	if ((*stack)->next == NULL)
 	{
-		fprintf(stderr, "L%d: can't swap, stack too short\n", line_number);
-		_free(*stack);
-		exit(EXIT_FAILURE);
+		set_op_tok_error(pop_error(line_number));
+		return;
 	}
-	else
-	{
-		tmp = val->n;
-		val->n = val->next->n;
-		val->next->n = tmp;
-	}
+
+	next = (*stack)->next->next;
+	free((*stack)->next);
+	if (next)
+		next->prev = *stack;
+	(*stack)->next = next;
 }
 
 /**
- * add - adds the top two elements of the stack.
- * @stack: double pointer to the head of the stack
- * @line_number: the line number
+ * monty_swap - Swaps the top two value elements of a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
  */
-
-void add(stack_t **stack, unsigned int line_number)
+void monty_swap(stack_t **stack, unsigned int line_number)
 {
-	stack_t *val = NULL;
-	int sum = 0;
+	stack_t *tmp;
 
-	if (!*stack || !(*stack)->next)
+	if ((*stack)->next == NULL || (*stack)->next->next == NULL)
 	{
-		fprintf(stderr, "L%d: can't add, stack too short\n", line_number);
-		_free(*stack);
-		exit(EXIT_FAILURE);
+		set_op_tok_error(short_stack_error(line_number, "swap"));
+		return;
 	}
-	val = (*stack)->next;
-	sum = (*stack)->n;
-	sum += (*stack)->next->n;
-	pop(stack, line_number);
-	val->n = sum;
+
+	tmp = (*stack)->next->next;
+	(*stack)->next->next = tmp->next;
+	(*stack)->next->prev = tmp;
+	if (tmp->next)
+		tmp->next->prev = (*stack)->next;
+	tmp->next = (*stack)->next;
+	tmp->prev = *stack;
+	(*stack)->next = tmp;
 }
-
-/**
- * pchar - adds the top two elements of the stack.
- * @stack: double pointer to the head of stack
- * @line_number: the line number
- */
-
-void pchar(stack_t **stack, unsigned int line_number)
-{
-	if (!*stack)
-	{
-		fprintf(stderr, "L%u: can't pchar, stack empty\n", line_number);
-		exit(EXIT_FAILURE);
-	}
-	if ((*stack)->n >= 0 && (*stack)->n <= 127)
-		printf("%c\n", (*stack)->n);
-	else
-	{
-		fprintf(stderr, "L%u: can't pchar, value out of range\n", line_number);
-		_free(*stack);
-		exit(EXIT_FAILURE);
-	}
-
-}
-
-/**
- * sub - substracts the top two elements of the stack.
- * @stack: double pointer to the head of the stack
- * @line_number: the line number
- */
-
-void sub(stack_t **stack, unsigned int line_number)
-{
-	stack_t *val = NULL;
-	int sum = 0;
-
-	if (!*stack || !(*stack)->next)
-	{
-		fprintf(stderr, "L%d: can't sub, stack too short\n", line_number);
-		_free(*stack);
-		exit(EXIT_FAILURE);
-	}
-	val = (*stack)->next;
-	sum = val->n;
-	sum -= (*stack)->n;
-	pop(stack, line_number);
-	val->n = sum;
-}
-

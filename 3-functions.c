@@ -1,26 +1,59 @@
 #include "monty.h"
 
+void monty_nop(stack_t **stack, unsigned int line_number);
+void monty_pchar(stack_t **stack, unsigned int line_number);
+void monty_pstr(stack_t **stack, unsigned int line_number);
+
 /**
- * _isdigit - checks if it is a digit
- * Return: 0 or 1
- * @c: Value
- **/
-
-int _isdigit(char *c)
+ * monty_nop - Does absolutely nothing for the Monty opcode 'nop'.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
+ */
+void monty_nop(stack_t **stack, unsigned int line_number)
 {
-	char *tmp = c;
+	(void)stack;
+	(void)line_number;
+}
 
-	if (c == NULL)
-		return (0);
-	if (*tmp == '-')
-		tmp++;
-
-	for (; *tmp != '\0'; tmp++)
+/**
+ * monty_pchar - Prints the character in the top value
+ *               node of a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
+ */
+void monty_pchar(stack_t **stack, unsigned int line_number)
+{
+	if ((*stack)->next == NULL)
 	{
-		if ((*tmp < '0' || *tmp > '9'))
-		{
-			return (0);
-		}
+		set_op_tok_error(pchar_error(line_number, "stack empty"));
+		return;
 	}
-	return (1);
+	if ((*stack)->next->n < 0 || (*stack)->next->n > 127)
+	{
+		set_op_tok_error(pchar_error(line_number,
+					     "value out of range"));
+		return;
+	}
+
+	printf("%c\n", (*stack)->next->n);
+}
+
+/**
+ * monty_pstr - Prints the string contained in a stack_t linked list.
+ * @stack: A pointer to the top mode node of a stack_t linked list.
+ * @line_number: The current working line number of a Monty bytecodes file.
+ */
+void monty_pstr(stack_t **stack, unsigned int line_number)
+{
+	stack_t *tmp = (*stack)->next;
+
+	while (tmp && tmp->n != 0 && (tmp->n > 0 && tmp->n <= 127))
+	{
+		printf("%c", tmp->n);
+		tmp = tmp->next;
+	}
+
+	printf("\n");
+
+	(void)line_number;
 }
